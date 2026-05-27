@@ -1,0 +1,66 @@
+CREATE TABLE usuarios (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    oauth_id VARCHAR(255) NOT NULL UNIQUE,
+    oauth_proveedor ENUM('Google', 'Facebook') NOT NULL,
+    nombre VARCHAR(150) NOT NULL,
+    email VARCHAR(150) NOT NULL UNIQUE,
+    foto_perfil VARCHAR(255) NULL,
+    rol ENUM('Visitante', 'Dueño', 'Administrador') DEFAULT 'Visitante',
+    creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 4. TABLA DE NEGOCIOS
+CREATE TABLE negocios (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    usuario_id INT NOT NULL,
+    categoria ENUM('Artesanías', 'Gastronomía', 'Servicios') NOT NULL,
+    nombre VARCHAR(100) NOT NULL,
+    descripcion_corta VARCHAR(100) NOT NULL,
+    descripcion_completa TEXT NOT NULL,
+    imagen_url VARCHAR(255) NOT NULL,
+    horario VARCHAR(100) NOT NULL,
+    whatsapp VARCHAR(20) NOT NULL,
+    tipo_ubicacion ENUM('Local Físico', 'A domicilio', 'Punto de entrega público') DEFAULT 'Punto de entrega público',
+    direccion VARCHAR(255) NULL,
+    facebook VARCHAR(255) NULL,
+    instagram VARCHAR(255) NULL,
+    FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 5. TABLA DE CALIFICACIONES
+CREATE TABLE calificaciones (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    usuario_id INT NOT NULL,
+    negocio_id INT NOT NULL,
+    estrellas TINYINT NOT NULL CHECK (estrellas BETWEEN 1 AND 5),
+    creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(usuario_id, negocio_id),
+    FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
+    FOREIGN KEY (negocio_id) REFERENCES negocios(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 6. TABLA DE SOLICITUDES 
+CREATE TABLE solicitudes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    usuario_id INT NOT NULL,
+    negocio_id INT NULL DEFAULT NULL, -- Obligatorio en NULL para admitir altas de negocios que no existen aun
+    tipo_solicitud ENUM('Alta', 'Modificacion', 'Baja') NOT NULL,
+    datos_nuevos LONGTEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL, -- Soporta los arreglos de PHP decodificados
+    estado ENUM('Pendiente', 'Aprobada', 'Rechazada') DEFAULT 'Pendiente',
+    creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 7. INSERCIÓN ESTRUCTURADA DE AUDITORÍA: CUENTA DE ADMINISTRADOR MAESTRA
+
+
+INSERT INTO usuarios (oauth_id, oauth_proveedor, nombre, email, foto_perfil, rol) 
+VALUES (
+    '123456789012345678901', -- ID de marcador temporal para Google
+    'Google', 
+    'Carlos Joel Perez Gonzalez', 
+    'c.joelperez@gmail.com', 
+    NULL, 
+    'Administrador'
+) 
+ON DUPLICATE KEY UPDATE rol = 'Administrador';
